@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
   HttpCode,
   Res,
+  Put,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -45,7 +46,7 @@ export class UserController {
     return result;
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(
     @Param('id', UuidParamValidator) id: string,
     @Body() updateUserDto: UpdateUserDto,

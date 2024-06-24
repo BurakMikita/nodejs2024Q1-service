@@ -9,6 +9,7 @@ import {
   ValidationPipe,
   NotFoundException,
   HttpCode,
+  Put,
 } from '@nestjs/common';
 import { AlbumService } from './album.service';
 import { CreateAlbumDto } from './dto/create-album.dto';
@@ -38,7 +39,7 @@ export class AlbumController {
     return result;
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(
     @Param('id', UuidParamValidator) id: string,
     @Body() updateAlbumDto: UpdateAlbumDto,

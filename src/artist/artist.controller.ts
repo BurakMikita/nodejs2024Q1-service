@@ -9,6 +9,7 @@ import {
   ValidationPipe,
   NotFoundException,
   HttpCode,
+  Put,
 } from '@nestjs/common';
 import { ArtistService } from './artist.service';
 import { CreateArtistDto } from './dto/create-artist.dto';
@@ -38,7 +39,7 @@ export class ArtistController {
     return result;
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(
     @Param('id', UuidParamValidator) id: string,
     @Body() updateArtistDto: UpdateArtistDto,

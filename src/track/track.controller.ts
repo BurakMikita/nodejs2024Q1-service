@@ -9,6 +9,7 @@ import {
   ValidationPipe,
   NotFoundException,
   HttpCode,
+  Put,
 } from '@nestjs/common';
 import { TrackService } from './track.service';
 import { CreateTrackDto } from './dto/create-track.dto';
@@ -38,7 +39,7 @@ export class TrackController {
     return result;
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(
     @Param('id', UuidParamValidator) id: string,
     @Body() updateTrackDto: UpdateTrackDto,
