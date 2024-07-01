@@ -1,44 +1,67 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
-import { tacksDB } from 'src/dataBase/tracks/tracksDB';
 import { v4 } from 'uuid';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class TrackService {
-  create(createTrackDto: CreateTrackDto) {
-    const id = v4();
-    const Track = {
-      id,
-      ...createTrackDto,
-    };
-    tacksDB.push(Track);
-    return Track;
+  constructor(private readonly prisma: PrismaService) {}
+
+  private async getTrack(id: string) {
+    const track = await this.prisma.track.findUnique({
+      where: {
+        id,
+      },
+    });
+    if (!track) {
+      return false;
+    }
+    return track;
+  }
+
+  async create(createTrackDto: CreateTrackDto) {
+    const track = await this.prisma.track.create({
+      data: {
+        id: v4(),
+        ...createTrackDto,
+      },
+    });
+    return track;
   }
 
   findAll() {
-    return tacksDB;
+    return this.prisma.track.findMany();
   }
 
   findOne(id: string) {
-    return tacksDB.find((track) => track.id === id);
+    return this.getTrack(id);
   }
 
-  update(id: string, updateTrackDto: UpdateTrackDto) {
-    const trackIndex = tacksDB.findIndex((track) => track.id === id);
-    if (trackIndex === -1) {
+  async update(id: string, updateTrackDto: UpdateTrackDto) {
+    const track = await this.getTrack(id);
+
+    if (!track) {
       throw new NotFoundException(`Cat with ID ${id} not found`);
     } else {
-      tacksDB[trackIndex] = { ...tacksDB[trackIndex], ...updateTrackDto };
-
-      return tacksDB[trackIndex];
+      const trackUpdate = await this.prisma.track.update({
+        where: {
+          id,
+        },
+        data: updateTrackDto,
+      });
+      return trackUpdate;
     }
   }
 
-  remove(id: string) {
-    const indexToRemove = tacksDB.findIndex((obj) => obj.id === id);
-    if (indexToRemove > -1) {
-      tacksDB.splice(indexToRemove, 1);
+  async remove(id: string) {
+    const track = await this.getTrack(id);
+    if (track) {
+      await this.prisma.track.delete({
+        where: {
+          id,
+        },
+      });
       return true;
     } else {
       return false;

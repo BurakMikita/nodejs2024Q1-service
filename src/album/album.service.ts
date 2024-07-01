@@ -3,42 +3,66 @@ import { CreateAlbumDto } from './dto/create-album.dto';
 import { UpdateAlbumDto } from './dto/update-album.dto';
 import { v4 } from 'uuid';
 import { albumsDB } from 'src/dataBase/albums/albumsDB';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AlbumService {
-  create(createAlbumDto: CreateAlbumDto) {
-    const id = v4();
-    const Album = {
-      id,
-      ...createAlbumDto,
-    };
-    albumsDB.push(Album);
+  constructor(private readonly prisma: PrismaService) {}
+
+  private async getAlbum(id: string) {
+    const album = await this.prisma.album.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!album) {
+      return false;
+    }
+    return album;
+  }
+
+  async create(createAlbumDto: CreateAlbumDto) {
+    const Album = await this.prisma.album.create({
+      data: {
+        id: v4(),
+        ...createAlbumDto,
+      },
+    });
     return Album;
   }
 
   findAll() {
-    return albumsDB;
+    return this.prisma.album.findMany();
   }
 
   findOne(id: string) {
-    return albumsDB.find((album) => album.id === id);
+    return this.getAlbum(id);
   }
 
-  update(id: string, updateAlbumDto: UpdateAlbumDto) {
-    const albumIndex = albumsDB.findIndex((album) => album.id === id);
-    if (albumIndex === -1) {
+  async update(id: string, updateAlbumDto: UpdateAlbumDto) {
+    const album = await this.getAlbum(id);
+    if (!album) {
       throw new NotFoundException(`Cat with ID ${id} not found`);
     } else {
-      albumsDB[albumIndex] = { ...albumsDB[albumIndex], ...updateAlbumDto };
-
-      return albumsDB[albumIndex];
+      const albumUpdate = await this.prisma.album.update({
+        where: {
+          id,
+        },
+        data: updateAlbumDto,
+      });
+      return albumUpdate;
     }
   }
 
-  remove(id: string) {
-    const indexToRemove = albumsDB.findIndex((obj) => obj.id === id);
-    if (indexToRemove > -1) {
-      albumsDB.splice(indexToRemove, 1);
+  async remove(id: string) {
+    const album = await this.getAlbum(id);
+    if (album) {
+      await this.prisma.album.delete({
+        where: {
+          id,
+        },
+      });
       return true;
     } else {
       return false;

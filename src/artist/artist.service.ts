@@ -3,45 +3,65 @@ import { CreateArtistDto } from './dto/create-artist.dto';
 import { UpdateArtistDto } from './dto/update-artist.dto';
 import { v4 } from 'uuid';
 import { artistsDB } from 'src/dataBase/artists/artistsDB';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class ArtistService {
-  create(createArtistDto: CreateArtistDto) {
-    const id = v4();
-    const Artist = {
-      id,
-      ...createArtistDto,
-    };
-    artistsDB.push(Artist);
-    return Artist;
+  constructor(private readonly prisma: PrismaService) {}
+
+  private async getArtist(id: string) {
+    const artist = await this.prisma.artist.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!artist) {
+      return false;
+    }
+    return artist;
+  }
+  async create(createArtistDto: CreateArtistDto) {
+    const artist = await this.prisma.artist.create({
+      data: {
+        id: v4(),
+        ...createArtistDto,
+      },
+    });
+    return artist;
   }
 
   findAll() {
-    return artistsDB;
+    return this.prisma.artist.findMany();
   }
 
   findOne(id: string) {
-    return artistsDB.find((artist) => artist.id === id);
+    return this.getArtist(id);
   }
 
-  update(id: string, updateArtistDto: UpdateArtistDto) {
-    const artistIndex = artistsDB.findIndex((artist) => artist.id === id);
-    if (artistIndex === -1) {
+  async update(id: string, updateArtistDto: UpdateArtistDto) {
+    const artist = await this.getArtist(id);
+    if (!artist) {
       throw new NotFoundException(`Cat with ID ${id} not found`);
     } else {
-      artistsDB[artistIndex] = {
-        ...artistsDB[artistIndex],
-        ...updateArtistDto,
-      };
-
-      return artistsDB[artistIndex];
+      const artistUpdate = await this.prisma.artist.update({
+        where: {
+          id,
+        },
+        data: updateArtistDto,
+      });
+      return artistUpdate;
     }
   }
 
-  remove(id: string) {
-    const indexToRemove = artistsDB.findIndex((obj) => obj.id === id);
-    if (indexToRemove > -1) {
-      artistsDB.splice(indexToRemove, 1);
+  async remove(id: string) {
+    const artist = await this.getArtist(id);
+    if (artist) {
+      await this.prisma.artist.delete({
+        where: {
+          id,
+        },
+      });
       return true;
     } else {
       return false;

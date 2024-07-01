@@ -1,76 +1,87 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { usersDB } from 'src/dataBase/users/usersDB';
-import { v4 } from 'uuid';
-import { IsUUID } from 'class-validator';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class UserService {
-  create(createUserDto: CreateUserDto) {
-    const id = v4();
-    const date = new Date().getTime();
-    const newUser = {
-      id,
-      login: createUserDto.login,
-      password: createUserDto.password,
-      version: 0.1,
-      createdAt: date,
-      updatedAt: date,
-    };
-    usersDB.push(newUser);
-    const { password, ...userWithoutPassword } = newUser;
+  constructor(private readonly prisma: PrismaService) {}
 
-    return userWithoutPassword;
+  async create(createUserDto: CreateUserDto) {
+    const user = await this.prisma.user.create({ data: createUserDto });
+    delete user.password;
+    const newUser = {
+      ...user,
+      createdAt: Number(user.createdAt),
+      updatedAt: Number(user.updatedAt),
+    };
+    return newUser;
   }
 
-  findAll() {
-    const usersResponde = usersDB.map((user) => {
+  async findAll() {
+    const usersResponde = await this.prisma.user.findMany();
+    const usersWithoutPassword = usersResponde.map((user) => {
       const { password, ...userWithoutPassword } = user;
 
       return userWithoutPassword;
     });
 
-    return usersResponde;
+    return usersWithoutPassword;
   }
 
-  findOne(id: string) {
-    const user = usersDB.find((user) => user.id === id);
-    if (!user) return false;
+  async findOne(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    if (!user) throw new NotFoundException(`Cat with ID ${id} not found`);
+
     const { password, ...userWithoutPassword } = user;
 
     return userWithoutPassword;
   }
 
-  update(id: string, updateUserDto: UpdateUserDto) {
-    const user = usersDB.find((user) => user.id === id);
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
     if (!user) {
       throw new NotFoundException(`Cat with ID ${id} not found`);
     }
 
     if (user.password === updateUserDto.oldPassword) {
-      user.password = updateUserDto.newPassword;
-      user.updatedAt = new Date().getTime();
-      user.version += 0.1;
-      const { password, ...userWithoutPassword } = user;
+      const user = await this.prisma.user.update({
+        where: { id },
+        data: {
+          password: updateUserDto.newPassword,
+          version: { increment: 1 },
+        },
+      });
 
-      return userWithoutPassword;
+      const { password, ...userWithoutPassword } = user;
+      const newUser = {
+        ...userWithoutPassword,
+        createdAt: Number(user.createdAt),
+        updatedAt: Number(user.updatedAt),
+      };
+      return newUser;
     } else {
       throw new ForbiddenException('Incorrect old password.'); // Throw HttpException with 403 status
     }
   }
 
-  remove(id: string) {
-    const indexToRemove = usersDB.findIndex((obj) => obj.id === id);
-    if (indexToRemove > -1) {
-      usersDB.splice(indexToRemove, 1);
-      return true;
-    } else {
-      return false;
+  async remove(id: string) {
+    try {
+      const deleteUser = await this.prisma.user.delete({
+        where: { id },
+      });
+      return deleteUser;
+    } catch (error) {
+      throw new NotFoundException(`Cat with ID ${id} not found`);
     }
   }
 }

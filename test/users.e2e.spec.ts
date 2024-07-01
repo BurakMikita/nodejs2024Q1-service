@@ -45,6 +45,7 @@ describe('Users (e2e)', () => {
       const response = await unauthorizedRequest
         .get(usersRoutes.getAll)
         .set(commonHeaders);
+
       expect(response.status).toBe(StatusCodes.OK);
       expect(response.body).toBeInstanceOf(Array);
     });
@@ -56,7 +57,6 @@ describe('Users (e2e)', () => {
         .send(createUserDto);
 
       const { id } = creationResponse.body;
-
       expect(creationResponse.statusCode).toBe(StatusCodes.CREATED);
 
       const searchResponse = await unauthorizedRequest

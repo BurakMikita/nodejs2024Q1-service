@@ -19,7 +19,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { IsUUID } from 'class-validator';
 import { UuidParamValidator } from 'src/validatorCustom/UuidParamValidator';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('user')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -39,17 +41,13 @@ export class UserController {
 
   @Get(':id')
   async findOne(@Param('id', UuidParamValidator) id: string) {
-    const result = this.userService.findOne(id);
-    if (!result) {
-      throw new NotFoundException(`Cat with ID ${id} not found`);
-    }
-    return result;
+    return this.userService.findOne(id);
   }
 
   @Put(':id')
   update(
     @Param('id', UuidParamValidator) id: string,
-    @Body() updateUserDto: UpdateUserDto,
+    @Body(new ValidationPipe()) updateUserDto: UpdateUserDto,
   ) {
     return this.userService.update(id, updateUserDto);
   }
@@ -57,9 +55,6 @@ export class UserController {
   @Delete(':id')
   @HttpCode(204)
   remove(@Param('id', UuidParamValidator) id: string) {
-    const result = this.userService.remove(id);
-    if (!result) {
-      throw new NotFoundException(`Cat with ID ${id} not found`);
-    }
+    return this.userService.remove(id);
   }
 }

@@ -15,7 +15,9 @@ import { TrackService } from './track.service';
 import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
 import { UuidParamValidator } from 'src/validatorCustom/UuidParamValidator';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('track')
 @Controller('track')
 export class TrackController {
   constructor(private readonly trackService: TrackService) {}
@@ -31,8 +33,8 @@ export class TrackController {
   }
 
   @Get(':id')
-  findOne(@Param('id', UuidParamValidator) id: string) {
-    const result = this.trackService.findOne(id);
+  async findOne(@Param('id', UuidParamValidator) id: string) {
+    const result = await this.trackService.findOne(id);
     if (!result) {
       throw new NotFoundException(`Cat with ID ${id} not found`);
     }
@@ -42,15 +44,15 @@ export class TrackController {
   @Put(':id')
   update(
     @Param('id', UuidParamValidator) id: string,
-    @Body() updateTrackDto: UpdateTrackDto,
+    @Body(new ValidationPipe()) updateTrackDto: UpdateTrackDto,
   ) {
     return this.trackService.update(id, updateTrackDto);
   }
 
   @Delete(':id')
   @HttpCode(204)
-  remove(@Param('id', UuidParamValidator) id: string) {
-    const result = this.trackService.remove(id);
+  async remove(@Param('id', UuidParamValidator) id: string) {
+    const result = await this.trackService.remove(id);
     if (!result) {
       throw new NotFoundException(`Cat with ID ${id} not found`);
     }
